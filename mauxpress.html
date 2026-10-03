@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>MauXpress</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{--bg:#fff7f1;--card:#fff;--tx:#1d1d1f;--mu:#777;--or:#ff6a13;--ln:#f0e2d6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1512;--card:#262019;--tx:#f5eee8;--mu:#a99;--ln:#3a2f26}}
+:root[data-theme="dark"]{--bg:#1a1512;--card:#262019;--tx:#f5eee8;--mu:#a99;--ln:#3a2f26}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,sans-serif;padding-bottom:70px}
+.w{max-width:560px;margin:auto;padding:12px}
+h1,h2,h3{margin:0}.logo{font-weight:900;font-size:24px}.logo b{color:var(--or)}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:12px;margin:8px 0}
+.row{display:flex;align-items:center;gap:10px}.sp{justify-content:space-between}.mu{color:var(--mu);font-size:13px}
+button,input,select{font:inherit}
+.btn{background:var(--or);color:#fff;border:0;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
+.btn.g{background:var(--ln);color:var(--tx)}.btn.b{width:100%;padding:13px}
+input,select{width:100%;padding:10px;border:1px solid var(--ln);border-radius:10px;background:var(--card);color:var(--tx);margin:4px 0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0}.chip{padding:6px 12px;border-radius:20px;background:var(--card);border:1px solid var(--ln);white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--or);color:#fff;border-color:var(--or)}
+.em{font-size:38px;width:56px;text-align:center}.price{font-weight:800}.old{text-decoration:line-through;color:var(--mu);font-size:12px;margin-left:4px}
+.off{background:#ff3b5c;color:#fff;border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--ln);display:flex;justify-content:space-around;padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px))}
+nav a{text-align:center;font-size:12px;color:var(--mu);cursor:pointer;flex:1}nav a.on{color:var(--or);font-weight:700}
+.st{padding:2px 8px;border-radius:8px;font-size:12px;font-weight:700;background:var(--ln)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stats .card{margin:0}.stats b{font-size:22px;display:block}
+.qty{display:flex;align-items:center;gap:8px}.qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--ln);background:var(--card);color:var(--tx);font-size:16px}
+.badge{background:var(--or);color:#fff;border-radius:10px;padding:0 6px;font-size:11px}
+</style></head><body><div class="w" id="app"></div><nav id="nav"></nav>
+<script>
+const DEF=[
+{id:"p1",name:"Aashirvaad Atta 5kg",cat:"Grocery",price:245,mrp:270,e:"🌾"},
+{id:"p2",name:"India Gate Basmati Rice 5kg",cat:"Grocery",price:540,mrp:600,e:"🍚"},
+{id:"p3",name:"Fortune Sunflower Oil 1L",cat:"Grocery",price:165,mrp:180,e:"🛢️"},
+{id:"p4",name:"Tata Salt 1kg",cat:"Grocery",price:28,mrp:32,e:"🧂"},
+{id:"p5",name:"Everest Chilli Powder 200g",cat:"Grocery",price:62,mrp:70,e:"🌶️"},
+{id:"p6",name:"Fresh Banana 1kg",cat:"Fruits & Veg",price:48,mrp:60,e:"🍌"},
+{id:"p7",name:"Tomato 1kg",cat:"Fruits & Veg",price:30,mrp:36,e:"🍅"},
+{id:"p8",name:"Amul Milk 1L",cat:"Dairy",price:66,mrp:68,e:"🥛"},
+{id:"p9",name:"Lays Chips",cat:"Snacks",price:20,mrp:20,e:"🥔"},
+{id:"p10",name:"Cold Drink 2L",cat:"Beverages",price:95,mrp:100,e:"🥤"}];
+const S={tab:"home",cat:"All",q:"",prods:DEF,orders:[],cart:{},addr:"",name:"",phone:"",admin:false,sel:null,db:null,pin:"1234"};
+const $=s=>document.querySelector(s);
+const ls={g(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+S.cart=ls.g("mx_cart",{});S.name=ls.g("mx_name","");S.phone=ls.g("mx_phone","");S.addr=ls.g("mx_addr","Pindohari, Mau");
+S.orders=ls.g("mx_orders",[]);S.prods=ls.g("mx_prods",DEF);
+const rs=n=>"₹"+n;
+const SHOP={phone:"8881468521",wa:"918881468521",mail:"ay7138609@gmail.com"};
+const omsg=o=>`New MauXpress order #${o.id}\nName: ${o.name}\nPhone: ${o.phone}\nAddress: ${o.addr}\n`+o.items.map(i=>`${i.n} x${i.q} = ${rs(i.p*i.q)}`).join("\n")+`\nTotal: ${rs(o.amt)} (COD)`;
+function notif(o){const m=encodeURIComponent(omsg(o));return `<div class="card"><b>✅ Order #${o.id} placed!</b><div class="mu">Tap below to send your order to the shop so it is confirmed fast.</div>
+<a href="https://wa.me/${SHOP.wa}?text=${m}"><button class="btn b" style="margin-top:8px">Send on WhatsApp</button></a>
+<a href="sms:${SHOP.phone}?body=${m}"><button class="btn g b" style="margin-top:6px">Send by SMS</button></a>
+<a href="mailto:${SHOP.mail}?subject=${encodeURIComponent("New order #"+o.id)}&body=${m}"><button class="btn g b" style="margin-top:6px">Send by Email</button></a></div>`}
+// ---- storage: shared db when available, else this device only
+async function initDb(){
+ try{const db=S.db=await claude.use("db");if(!db)return;
+  db.collection("orders").onSnapshot(s=>{S.orders=s.docs.map(d=>d.data()).sort((a,b)=>b.t-a.t);render()});
+  db.collection("products").onSnapshot(s=>{if(s.size){S.prods=s.docs.map(d=>d.data())}render()});
+ }catch(e){S.db=null}
+}
+async function saveOrder(o){
+ if(S.db){try{await S.db.collection("orders").doc(o.id).set(o);return}catch(e){}}
+ S.orders.unshift(o);ls.s("mx_orders",S.orders);
+}
+async function saveProd(p){
+ if(S.db){try{await S.db.collection("products").doc(p.id).set(p);return}catch(e){}}
+ const i=S.prods.findIndex(x=>x.id===p.id);i<0?S.prods.push(p):S.prods[i]=p;ls.s("mx_prods",S.prods);
+}
+async function seed(){if(S.db)for(const p of DEF)await saveProd(p)}
+// ---- cart
+const cc=()=>Object.values(S.cart).reduce((a,b)=>a+b,0);
+const total=()=>Object.entries(S.cart).reduce((a,[id,q])=>a+(S.prods.find(p=>p.id===id)?.price||0)*q,0);
+function add(id,d){S.cart[id]=(S.cart[id]||0)+d;if(S.cart[id]<=0)delete S.cart[id];ls.s("mx_cart",S.cart);render()}
+const qtyUI=id=>S.cart[id]?`<div class="qty"><button onclick="add('${id}',-1)">−</button>${S.cart[id]}<button onclick="add('${id}',1)">+</button></div>`:`<button class="btn" onclick="add('${id}',1)">+ Add</button>`;
+function go(t){S.tab=t;render();scrollTo(0,0)}
+function pc(p){const off=p.mrp>p.price?Math.round(100-p.price/p.mrp*100):0;
+ return `<div class="card row sp"><div class="row"><div class="em">${p.e||"🛒"}</div><div><b>${p.name}</b><div class="mu">${p.cat}</div><span class="price">${rs(p.price)}</span>${off?`<span class="old">${rs(p.mrp)}</span> <span class="off">${off}% OFF</span>`:""}</div></div>${qtyUI(p.id)}</div>`}
+// ---- views
+function home(){
+ const cats=["All",...new Set(S.prods.map(p=>p.cat))];
+ const l=S.prods.filter(p=>(S.cat==="All"||p.cat===S.cat)&&p.name.toLowerCase().includes(S.q.toLowerCase()));
+ return `<div class="row sp"><div class="logo">Mau<b>Xpress</b></div><div class="mu">📍 ${S.addr}</div></div>
+ <input placeholder="🔍 Search for products..." value="${S.q}" oninput="S.q=this.value;render(true)">
+ <div class="card" style="background:linear-gradient(135deg,#ffb27a,#ff6a13);color:#fff"><h2>Delivered in Minutes</h2><div>Daily essentials from Mau's local shops</div></div>
+ <div class="chips">${cats.map(c=>`<div class="chip ${c===S.cat?"on":""}" onclick="S.cat='${c}';render()">${c}</div>`).join("")}</div>
+ <div id="list">${l.map(pc).join("")||'<p class="mu">No products found.</p>'}</div>`}
+function cart(){
+ const it=Object.keys(S.cart).map(id=>S.prods.find(p=>p.id===id)).filter(Boolean);
+ if(!it.length)return `<h2>Cart</h2><p class="mu">Your cart is empty.</p>`;
+ return `<h2>Cart</h2>${it.map(pc).join("")}
+ <div class="card"><div class="row sp"><b>Total</b><b>${rs(total())}</b></div><div class="mu">Cash on delivery</div></div>
+ <div class="card"><b>Delivery details</b>
+ <input id="n" placeholder="Your name" value="${S.name}"><input id="ph" type="tel" placeholder="Phone number" value="${S.phone}"><input id="ad" placeholder="Full address" value="${S.addr}">
+ <button class="btn b" onclick="place()">Place Order</button></div>`}
+async function place(){
+ const n=$("#n").value.trim(),ph=$("#ph").value.trim(),ad=$("#ad").value.trim();
+ if(!n||ph.length<10||!ad){alert("Please enter name, 10-digit phone and address.");return}
+ S.name=n;S.phone=ph;S.addr=ad;ls.s("mx_name",n);ls.s("mx_phone",ph);ls.s("mx_addr",ad);
+ const items=Object.entries(S.cart).map(([id,q])=>{const p=S.prods.find(x=>x.id===id);return{n:p.name,q,p:p.price}});
+ const o={id:"MX"+Date.now().toString().slice(-6),t:Date.now(),name:n,phone:ph,addr:ad,items,amt:total(),status:"Pending"};
+ await saveOrder(o);S.lastO=o;S.cart={};ls.s("mx_cart",{});S.last=o.id;go("orders")}
+const stCol={Pending:"#999",Preparing:"#3b82f6","Out for Delivery":"#ff6a13",Delivered:"#22a559",Cancelled:"#e5484d"};
+const ST=Object.keys(stCol);
+function ordCard(o,adm){return `<div class="card"><div class="row sp"><b>#${o.id}</b><span class="st" style="color:${stCol[o.status]}">${o.status}</span></div>
+ <div class="mu">${new Date(o.t).toLocaleString()}${adm?` · ${o.name} · <a href="tel:${o.phone}">${o.phone}</a>`:""}</div>
+ <div>${o.items.map(i=>`${i.n} × ${i.q}`).join(", ")}</div><div class="row sp"><b>${rs(o.amt)}</b>${adm?`<select style="width:auto" onchange="setSt('${o.id}',this.value)">${ST.map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}</select>`:""}</div>${adm?`<div class="mu">📍 ${o.addr}</div>`:""}</div>`}
+async function setSt(id,s){const o=S.orders.find(x=>x.id===id);o.status=s;if(S.db){try{await S.db.collection("orders").doc(id).update({status:s});return}catch(e){}}ls.s("mx_orders",S.orders);render()}
+function orders(){
+ const mine=S.db?S.orders.filter(o=>o.phone===S.phone):S.orders;
+ return `<h2>My Orders</h2>${S.lastO?notif(S.lastO):""}${mine.map(o=>ordCard(o,false)).join("")||'<p class="mu">No orders yet.</p>'}`}
+function account(){return `<h2>Account</h2><div class="card"><b>${S.name||"Guest"}</b><div class="mu">${S.phone||"No phone saved"} · ${S.addr}</div></div>
+ <button class="btn b" onclick="go('admin')">Shop owner login</button>`}
+// admin
+function admin(){
+ if(!S.admin)return `<h2>Admin Login</h2><div class="card"><input id="pin" type="password" placeholder="PIN (default 1234)"><button class="btn b" onclick="if($('#pin').value===S.pin){S.admin=true;render()}else alert('Wrong PIN')">Login</button></div>`;
+ const O=S.orders,today=O.filter(o=>o.status!=="Cancelled"),sales=today.reduce((a,o)=>a+o.amt,0);
+ const cnt=s=>O.filter(o=>o.status===s).length;
+ return `<div class="row sp"><h2>Dashboard</h2><button class="btn g" onclick="S.admin=false;go('home')">Logout</button></div>
+ <div class="stats"><div class="card"><span class="mu">Total Orders</span><b>${O.length}</b></div><div class="card"><span class="mu">Total Sales</span><b>${rs(sales)}</b></div>
+ <div class="card"><span class="mu">Pending</span><b>${cnt("Pending")}</b></div><div class="card"><span class="mu">Products</span><b>${S.prods.length}</b></div></div>
+ <div class="card"><b>Add / Edit Product</b><input id="pn" placeholder="Name"><input id="pp" type="number" placeholder="Price ₹"><input id="pm" type="number" placeholder="MRP ₹ (optional)">
+ <input id="pcat" placeholder="Category" list="cl"><datalist id="cl">${[...new Set(S.prods.map(p=>p.cat))].map(c=>`<option>${c}`).join("")}</datalist><input id="pe" placeholder="Emoji (e.g. 🥕)">
+ <button class="btn b" onclick="addProd()">Save Product</button>${S.db&&S.prods.length<=DEF.length?`<button class="btn g b" style="margin-top:6px" onclick="seed()">Load sample products to shared store</button>`:""}</div>
+ <h3>Orders</h3>${O.map(o=>ordCard(o,true)).join("")||'<p class="mu">No orders yet.</p>'}
+ <h3>Products</h3>${S.prods.map(p=>`<div class="card row sp"><span>${p.e||"🛒"} ${p.name} · ${rs(p.price)}</span><button class="btn g" onclick="delProd('${p.id}')">Delete</button></div>`).join("")}`}
+async function addProd(){const n=$("#pn").value.trim(),pr=+$("#pp").value;if(!n||!pr){alert("Name and price needed");return}
+ await saveProd({id:"p"+Date.now(),name:n,price:pr,mrp:+$("#pm").value||pr,cat:$("#pcat").value.trim()||"Grocery",e:$("#pe").value.trim()||"🛒"});render()}
+async function delProd(id){if(!confirm("Delete product?"))return;
+ if(S.db){try{await S.db.collection("products").doc(id).delete();return}catch(e){}}
+ S.prods=S.prods.filter(p=>p.id!==id);ls.s("mx_prods",S.prods);render()}
+function render(keep){
+ const v={home,cart,orders,account,admin}[S.tab]();
+ if(keep&&S.tab==="home"){$("#list").innerHTML=S.prods.filter(p=>(S.cat==="All"||p.cat===S.cat)&&p.name.toLowerCase().includes(S.q.toLowerCase())).map(pc).join("");return}
+ $("#app").innerHTML=v;
+ const T=[["home","🏠","Home"],["cart","🛒","Cart"],["orders","📦","Orders"],["account","👤","Account"]];
+ $("#nav").innerHTML=T.map(([k,i,l])=>`<a class="${S.tab===k?"on":""}" onclick="go('${k}')">${i}<br>${l}${k==="cart"&&cc()?` <span class="badge">${cc()}</span>`:""}</a>`).join("")}
+render();initDb();
+</script></body></html>
